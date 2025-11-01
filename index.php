@@ -1,0 +1,250 @@
+<?php
+require_once 'config.php';
+
+// Lấy danh sách thành phố từ database
+$stmt = $conn->query("SELECT DISTINCT from_city FROM routes UNION SELECT DISTINCT to_city FROM routes ORDER BY from_city");
+$cities = [];
+while ($row = $stmt->fetch_assoc()) {
+    $cities[] = $row['from_city'];
+}
+?>
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FUTA Bus Lines - Vững tin & Phát triển</title>
+    <link rel="stylesheet" href="./css/index.css">
+    <style>
+    </style>
+</head>
+
+<body>
+    <!-- HEADER -->
+    <header class="header">
+        <div class="header-top">
+            <div class="left">
+                <span class="flag">🇻🇳</span> VI
+                <button class="app-btn">📱 Tải ứng dụng</button>
+            </div>
+            <div class="right" id="auth-section">
+                <?php if (is_logged_in()): ?>
+                <div class="user-info">
+                    👤 <?php echo htmlspecialchars($_SESSION['full_name']); ?>
+                    <button class="logout-btn" onclick="logout()">Đăng xuất</button>
+                </div>
+                <?php else: ?>
+                <a href="login.php" class="login-btn">Đăng nhập / Đăng ký</a>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <nav class="navbar">
+            <div class="logo">🚍 FUTA Bus Lines</div>
+            <ul class="nav-links">
+                <li><a href="index.php" class="active">TRANG CHỦ</a></li>
+                <li><a href="lichtrinh.php">LỊCH TRÌNH</a></li>
+                <li><a href="#">TRA CỨU VÉ</a></li>
+                <li><a href="#">TIN TỨC</a></li>
+                <li><a href="#">LIÊN HỆ</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- BANNER -->
+    <section class="banner">
+        <div class="banner-content">
+            <h2>24 Năm VỮNG TIN & PHÁT TRIỂN</h2>
+            <p>Hành trình an toàn - Trải nghiệm đẳng cấp</p>
+            <img src="https://futa.vn/assets/images/xe-futa.png" alt="FUTA Bus">
+        </div>
+    </section>
+
+    <!-- SEARCH BOX -->
+    <section class="search-section">
+        <div class="search-box">
+            <form id="search-form">
+                <div class="trip-type">
+                    <label>
+                        <input type="radio" name="trip" value="oneway" checked> Một chiều
+                    </label>
+                    <label>
+                        <input type="radio" name="trip" value="roundtrip"> Khứ hồi
+                    </label>
+                </div>
+
+                <div class="form-fields">
+                    <div class="form-group">
+                        <label>Điểm đi</label>
+                        <select id="from" name="from" required>
+                            <option value="">-- Chọn điểm đi --</option>
+                            <?php foreach ($cities as $city): ?>
+                            <option value="<?php echo htmlspecialchars($city); ?>">
+                                <?php echo htmlspecialchars($city); ?>
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <button type="button" class="swap-btn" id="swap-btn">⇄</button>
+
+                    <div class="form-group">
+                        <label>Điểm đến</label>
+                        <select id="to" name="to" required>
+                            <option value="">-- Chọn điểm đến --</option>
+                            <?php foreach ($cities as $city): ?>
+                            <option value="<?php echo htmlspecialchars($city); ?>">
+                                <?php echo htmlspecialchars($city); ?>
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Ngày đi</label>
+                        <input type="date" id="date" name="date" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Số vé</label>
+                        <select id="tickets" name="tickets">
+                            <?php for ($i = 1; $i <= 10; $i++): ?>
+                            <option value="<?php echo $i; ?>"><?php echo $i; ?></option>
+                            <?php endfor; ?>
+                        </select>
+                    </div>
+                </div>
+
+                <center>
+                    <button type="submit" class="search-btn">Tìm chuyến xe</button>
+                </center>
+            </form>
+        </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section class="features">
+        <div class="features-container">
+            <h2>Vì sao chọn FUTA Bus Lines?</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🛡️</div>
+                    <h3>An toàn tuyệt đối</h3>
+                    <p>Đội ngũ lái xe chuyên nghiệp, xe được bảo dưỡng định kỳ</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⭐</div>
+                    <h3>Dịch vụ 5 sao</h3>
+                    <p>Ghế ngồi êm ái, WiFi miễn phí, nước uống phục vụ suốt chuyến</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">💰</div>
+                    <h3>Giá cả hợp lý</h3>
+                    <p>Nhiều chương trình khuyến mãi, ưu đãi cho khách hàng thân thiết</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🕐</div>
+                    <h3>Đúng giờ</h3>
+                    <p>Cam kết xuất bến đúng giờ, tối ưu thời gian di chuyển</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-column">
+                <h3>TRUNG TÂM TỔNG ĐÀI</h3>
+                <p class="hotline">1900 6067</p>
+                <p><strong>CÔNG TY CỔ PHẦN XE KHÁCH PHƯƠNG TRANG</strong></p>
+                <p>Địa chỉ: 486 Lê Văn Lương, Tân Hưng, TP.HCM</p>
+                <p>Email: hotro@futa.vn</p>
+            </div>
+            <div class="footer-column">
+                <h3>FUTA Bus Lines</h3>
+                <a href="#">Về chúng tôi</a>
+                <a href="lichtrinh.php">Lịch trình</a>
+                <a href="#">Tuyển dụng</a>
+                <a href="#">Tin tức</a>
+            </div>
+            <div class="footer-column">
+                <h3>Hỗ trợ</h3>
+                <a href="#">Tra cứu đặt vé</a>
+                <a href="#">Điều khoản</a>
+                <a href="#">Câu hỏi thường gặp</a>
+                <a href="#">Hướng dẫn đặt vé</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2025 FUTA Bus Lines - Chất lượng là danh dự</p>
+        </div>
+    </footer>
+
+    <script>
+    // Set ngày tối thiểu là hôm nay
+    const dateInput = document.getElementById('date');
+    const today = new Date().toISOString().split('T')[0];
+    dateInput.setAttribute('min', today);
+    dateInput.value = today;
+
+    // Nút hoán đổi
+    document.getElementById('swap-btn').addEventListener('click', function() {
+        const from = document.getElementById('from');
+        const to = document.getElementById('to');
+        const temp = from.value;
+        from.value = to.value;
+        to.value = temp;
+    });
+
+    // Submit form
+    document.getElementById('search-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+        const from = formData.get('from');
+        const to = formData.get('to');
+
+        if (!from || !to) {
+            alert('⚠️ Vui lòng chọn điểm đi và điểm đến!');
+            return;
+        }
+
+        if (from === to) {
+            alert('⚠️ Điểm đi và điểm đến không thể giống nhau!');
+            return;
+        }
+
+        // Lưu vào session storage và chuyển trang
+        const searchData = {
+            from: from,
+            to: to,
+            date: formData.get('date'),
+            tickets: formData.get('tickets')
+        };
+        sessionStorage.setItem('searchData', JSON.stringify(searchData));
+        window.location.href = 'lichtrinh.php';
+    });
+
+    // Đăng xuất
+    async function logout() {
+        if (!confirm('Bạn có chắc muốn đăng xuất?')) return;
+
+        const formData = new FormData();
+        formData.append('action', 'logout');
+
+        const response = await fetch('auth.php', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            window.location.reload();
+        }
+    }
+    </script>
+</body>
+
+</html>
