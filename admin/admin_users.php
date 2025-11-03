@@ -1,7 +1,5 @@
 <?php
-
 // admin_users.php - Quản lý người dùng
-
 require_once '../config.php';
 require_once '../roles.php';
 
@@ -23,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $phone = escape_string(trim($_POST['phone'] ?? ''));
             $email = escape_string(trim($_POST['email'] ?? ''));
             $password = $_POST['password'] ?? '';
-            $role = escape_string($_POST['role'] ?? 'customer');
+            $role = escape_string($_POST['role'] ?? 'customer'); // Sửa: bỏ 'staff'
 
             if (empty($full_name) || empty($phone) || empty($password)) {
                 $message = 'Vui lòng nhập đầy đủ thông tin!';
@@ -57,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $full_name = escape_string(trim($_POST['full_name'] ?? ''));
             $phone = escape_string(trim($_POST['phone'] ?? ''));
             $email = escape_string(trim($_POST['email'] ?? ''));
-            $role = escape_string($_POST['role'] ?? 'customer');
+            $role = escape_string($_POST['role'] ?? 'customer'); // Sửa: bỏ 'staff'
 
             if ($user_id > 0 && !empty($full_name) && !empty($phone)) {
                 $stmt = $conn->prepare("UPDATE users SET full_name = ?, phone = ?, email = ?, role = ? WHERE id = ?");
@@ -137,6 +135,11 @@ if (!empty($role_filter) && $role_filter !== 'all') {
     $types .= 's';
 }
 
+// ========================================================
+// SỬA LỖI 1: Không hiển thị 'staff'
+// ========================================================
+$sql .= " AND role != 'staff' "; // Thêm dòng này để ẩn 'staff'
+
 $sql .= " ORDER BY created_at DESC";
 
 $stmt = $conn->prepare($sql);
@@ -153,10 +156,10 @@ while ($row = $result->fetch_assoc()) {
 
 // Thống kê
 $stats = [
-    'total' => $conn->query("SELECT COUNT(*) as count FROM users")->fetch_assoc()['count'],
+    'total' => $conn->query("SELECT COUNT(*) as count FROM users WHERE role != 'staff'")->fetch_assoc()['count'],
     'admin' => $conn->query("SELECT COUNT(*) as count FROM users WHERE role = 'admin'")->fetch_assoc()['count'],
-    'staff' => $conn->query("SELECT COUNT(*) as count FROM users WHERE role = 'staff'")->fetch_assoc()['count'],
-    'customer' => $conn->query("SELECT COUNT(*) as count FROM users WHERE role = 'customer' OR role = ''")->fetch_assoc()['count'] // Đếm cả role rỗng
+    // Bỏ 'staff'
+    'customer' => $conn->query("SELECT COUNT(*) as count FROM users WHERE role = 'customer' OR role = ''")->fetch_assoc()['count']
 ];
 ?>
 <!DOCTYPE html>
@@ -256,10 +259,6 @@ $stats = [
                     <div class="number"><?= number_format($stats['admin']) ?></div>
                 </div>
                 <div class="stat-card">
-                    <h3>Nhân viên</h3>
-                    <div class="number"><?= number_format($stats['staff']) ?></div>
-                </div>
-                <div class="stat-card">
                     <h3>Khách hàng</h3>
                     <div class="number"><?= number_format($stats['customer']) ?></div>
                 </div>
@@ -276,7 +275,6 @@ $stats = [
                             <option value="all" <?= $role_filter === 'all' || $role_filter === '' ? 'selected' : '' ?>>
                                 Tất cả vai trò</option>
                             <option value="admin" <?= $role_filter === 'admin' ? 'selected' : '' ?>>Admin</option>
-                            <option value="staff" <?= $role_filter === 'staff' ? 'selected' : '' ?>>Nhân viên</option>
                             <option value="customer" <?= $role_filter === 'customer' ? 'selected' : '' ?>>Khách hàng
                             </option>
                         </select>
@@ -306,18 +304,17 @@ $stats = [
                                     <td><?= htmlspecialchars($u['email'] ?? 'Chưa có') ?></td>
                                     <td>
                                         <?php
-                                        // ================== SỬA LỖI 2: Undefined array key ==================
                                         // Sửa logic để xử lý cả chuỗi rỗng "" và NULL
                                         $role = $u['role'] ?: 'customer';
-                                        // ===================================================================
+
                                         $role_labels = [
                                             'admin' => '👑 Admin',
-
                                             'customer' => '👤 Khách hàng'
+                                            // Đã bỏ 'staff'
                                         ];
                                         ?>
                                         <span class="badge badge-<?= $role ?>">
-                                            <?= $role_labels[$role] ?>
+                                            <?= $role_labels[$role] ?? 'N/A' ?>
                                         </span>
                                     </td>
                                     <td><?= format_date($u['created_at']) ?></td>
@@ -349,36 +346,29 @@ $stats = [
             </div>
             <form method="POST" action="admin_users.php">
                 <input type="hidden" name="action" value="add_user">
-
                 <div class="form-group">
                     <label>Họ và tên <span style="color: red;">*</span></label>
                     <input type="text" name="full_name" required>
                 </div>
-
                 <div class="form-group">
                     <label>Số điện thoại <span style="color: red;">*</span></label>
                     <input type="tel" name="phone" placeholder="0xxxxxxxxx" maxlength="10" required>
                 </div>
-
                 <div class="form-group">
                     <label>Email</label>
                     <input type="email" name="email" placeholder="email@example.com">
                 </div>
-
                 <div class="form-group">
                     <label>Mật khẩu <span style="color: red;">*</span></label>
                     <input type="password" name="password" minlength="6" required>
                 </div>
-
                 <div class="form-group">
                     <label>Vai trò <span style="color: red;">*</span></label>
                     <select name="role" required>
                         <option value="customer">👤 Khách hàng</option>
-                        <option value="staff">👨‍💼 Nhân viên</option>
                         <option value="admin">👑 Quản trị viên</option>
                     </select>
                 </div>
-
                 <button type="submit" class="btn-submit">Thêm người dùng</button>
             </form>
         </div>
@@ -393,31 +383,25 @@ $stats = [
             <form method="POST" action="admin_users.php">
                 <input type="hidden" name="action" value="update_user">
                 <input type="hidden" name="user_id" id="edit_user_id">
-
                 <div class="form-group">
                     <label>Họ và tên <span style="color: red;">*</span></label>
                     <input type="text" name="full_name" id="edit_full_name" required>
                 </div>
-
                 <div class="form-group">
                     <label>Số điện thoại <span style="color: red;">*</span></label>
                     <input type="tel" name="phone" id="edit_phone" maxlength="10" required>
                 </div>
-
                 <div class="form-group">
                     <label>Email</label>
                     <input type="email" name="email" id="edit_email">
                 </div>
-
                 <div class="form-group">
                     <label>Vai trò <span style="color: red;">*</span></label>
                     <select name="role" id="edit_role" required>
                         <option value="customer">👤 Khách hàng</option>
-                        <option value="staff">👨‍💼 Nhân viên</option>
                         <option value="admin">👑 Quản trị viên</option>
                     </select>
                 </div>
-
                 <button type="submit" class="btn-submit">Cập nhật</button>
             </form>
         </div>
@@ -432,17 +416,14 @@ $stats = [
             <form method="POST" action="admin_users.php">
                 <input type="hidden" name="action" value="change_password">
                 <input type="hidden" name="user_id" id="pwd_user_id">
-
                 <div class="form-group">
                     <label>Người dùng</label>
                     <input type="text" id="pwd_user_name" readonly style="background: #f5f5f5;">
                 </div>
-
                 <div class="form-group">
                     <label>Mật khẩu mới <span style="color: red;">*</span></label>
                     <input type="password" name="new_password" minlength="6" required>
                 </div>
-
                 <button type="submit" class="btn-submit">Đổi mật khẩu</button>
             </form>
         </div>
@@ -488,7 +469,7 @@ $stats = [
             if (confirm(`Bạn có chắc muốn xóa người dùng "${userName}"?\n\nLưu ý: Hành động này không thể hoàn tác!`)) {
                 const form = document.createElement('form');
                 form.method = 'POST';
-                form.action = 'admin_users.php'; // Đảm bảo submit về đúng trang
+                form.action = 'admin_users.php';
                 form.innerHTML = `
                 <input type="hidden" name="action" value="delete_user">
                 <input type="hidden" name="user_id" value="${userId}">
@@ -519,25 +500,19 @@ $stats = [
             }
         }, 5000);
 
-        // JS cho nút Đăng xuất (Thêm vào)
+        // JS cho nút Đăng xuất (Giữ nguyên)
         async function handleLogout() {
             if (!confirm('Bạn có chắc muốn đăng xuất?')) return;
-
             const formData = new FormData();
             formData.append('action', 'logout');
-
             try {
-                // ================== SỬA LỖI 3: Sai đường dẫn fetch ==================
-                // Phải thêm ../ vì file auth.php nằm ở thư mục gốc
                 const response = await fetch('../auth.php', {
                     method: 'POST',
                     body: formData
                 });
                 const data = await response.json();
-
                 if (data.success) {
                     alert('Đăng xuất thành công!');
-                    // Sửa luôn đường dẫn redirect về login.php
                     window.location.href = '../login.php';
                 } else {
                     alert('Có lỗi xảy ra khi đăng xuất.');

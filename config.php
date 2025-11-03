@@ -124,7 +124,12 @@ function create_database_tables()
         seat_numbers VARCHAR(255),
         status ENUM('pending', 'confirmed', 'cancelled') DEFAULT 'pending',
         payment_status ENUM('unpaid', 'paid') DEFAULT 'unpaid',
-        booking_code VARCHAR(20) UNIQUE NOT NULL,
+        
+        -- ===============================================
+        -- SỬA LỖI: Đổi VARCHAR(20) thành VARCHAR(25)
+        -- ===============================================
+        booking_code VARCHAR(25) UNIQUE NOT NULL,
+
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
         FOREIGN KEY (schedule_id) REFERENCES schedules(id) ON DELETE CASCADE
@@ -166,44 +171,31 @@ function insert_sample_data()
             $stmt->execute();
         }
 
-        // ===============================================
-        // BẮT ĐẦU PHẦN CODE ĐÃ SỬA
-        // ===============================================
-
         // Lấy ngày hôm nay và ngày mai để làm dữ liệu mẫu
         $today = date('Y-m-d');
         $tomorrow = date('Y-m-d', strtotime('+1 day'));
 
         // Thêm lịch trình
-        // Cấu trúc dữ liệu mới:
-        // [route_id, bus_number, departure_time, arrival_time, price, bus_type, total_seats, available_seats]
         $schedules = [
             [1, '51B-123.45', "$today 06:00:00", "$today 09:00:00", 150000, 'standard', 45, 45],
             [1, '51B-123.46', "$today 14:00:00", "$today 17:00:00", 150000, 'standard', 45, 45],
             [2, '51F-222.22', "$today 07:30:00", "$today 13:30:00", 250000, 'vip', 24, 24],
-            [2, '51F-222.23', "$today 21:00:00", "$tomorrow 03:00:00", 280000, 'vip', 24, 24], // Chuyến qua đêm
-            [3, '51F-333.33', "$today 22:00:00", "$tomorrow 06:00:00", 300000, 'vip', 24, 24], // Chuyến qua đêm
+            [2, '51F-222.23', "$today 21:00:00", "$tomorrow 03:00:00", 280000, 'vip', 24, 24],
+            [3, '51F-333.33', "$today 22:00:00", "$tomorrow 06:00:00", 300000, 'vip', 24, 24],
             [4, '51A-444.44', "$today 09:00:00", "$today 11:00:00", 120000, 'limousine', 16, 16],
             [4, '51A-444.45', "$today 15:00:00", "$today 17:00:00", 120000, 'limousine', 16, 16],
             [5, '65C-555.55', "$today 05:00:00", "$today 11:00:00", 230000, 'limousine', 16, 16],
             [6, '49B-666.66', "$today 08:00:00", "$today 12:00:00", 180000, 'standard', 45, 45]
         ];
 
-        // Câu lệnh INSERT đã sửa (thêm bus_number, bỏ duration)
         $stmt = $conn->prepare("INSERT INTO schedules (route_id, bus_number, departure_time, arrival_time, price, bus_type, total_seats, available_seats) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
 
         foreach ($schedules as $schedule) {
-            // bind_param đã sửa: "isssdsii" (8 tham số)
             $stmt->bind_param("isssdsii", $schedule[0], $schedule[1], $schedule[2], $schedule[3], $schedule[4], $schedule[5], $schedule[6], $schedule[7]);
             $stmt->execute();
         }
-
-        // ===============================================
-        // KẾT THÚC PHẦN CODE ĐÃ SỬA
-        // ===============================================
     }
 }
-
 insert_sample_data();
 
-// echo "Cấu hình và dữ liệu mẫu đã được khởi tạo thành công!"; // Bỏ comment dòng này nếu muốn thấy thông báo
+// echo "Cấu hình và dữ liệu mẫu đã được khởi tạo thành công!";

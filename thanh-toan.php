@@ -3,7 +3,6 @@ require_once 'config.php';
 
 // 1. Kiểm tra đăng nhập
 if (!is_logged_in()) {
-    // Chuyển hướng về login VÀ mang theo mã vé
     $redirect_url = urlencode($_SERVER['REQUEST_URI']);
     redirect("login.php?error=require_login&redirect_to=$redirect_url");
 }
@@ -14,38 +13,29 @@ if (empty($booking_code)) {
     die("Mã đặt vé không hợp lệ.");
 }
 
-// =================================================================
-// SỬA LỖI RACE CONDITION (LỖI TỐC ĐỘ)
-// Buộc PHP dừng 1 giây để CSDL có thời gian COMMIT (lưu) vé
-sleep(1);
-// =================================================================
-
-
 // 3. Lấy thông tin vé
 $booking = null;
 try {
     $stmt = $conn->prepare("
-        SELECT b.*, s.departure_time, s.arrival_time, r.from_city, r.to_city, s.bus_type
+        SELECT b.*, s.departure_time, s.arrival_time, r.from_city, r.to_city, s.bus_type,
+               s.id as schedule_id 
         FROM bookings b
         JOIN schedules s ON b.schedule_id = s.id
         JOIN routes r ON s.route_id = r.id
         WHERE b.booking_code = ? AND b.user_id = ?
     ");
 
-    // Câu lệnh này sẽ kiểm tra vé VÀ user_id trong session
     $stmt->bind_param("si", $booking_code, $_SESSION['user_id']);
     $stmt->execute();
     $result = $stmt->get_result();
 
     if ($result->num_rows === 0) {
-        // Lỗi này 99% là do xung đột session
-        die("Không tìm thấy thông tin đặt vé của bạn. (Lý do: Vé này có thể thuộc về một tài khoản khác đang đăng nhập trên trình duyệt của bạn.)");
+        die("Không tìm thấy thông tin đặt vé của bạn.");
     }
 
     $booking = $result->fetch_assoc();
 
-    // Nếu đã thanh toán, chuyển đi
-    if ($booking['payment_status'] === 'paid') {
+    if ($booking['status'] === 'confirmed') {
         redirect("dat-ve-thanh-cong.php?booking_code=" . $booking_code);
     }
 } catch (Exception $e) {
@@ -65,8 +55,10 @@ try {
 <body>
     <div class="header-mini">
         <a href="index.php" class="logo-mini">🚍 FUTA Bus Lines</a>
-        <a href="chon-ghe.php?schedule_id=<?= htmlspecialchars($booking['schedule_id']) ?>" class="back-home">← Quay
-            lại</a>
+
+        <a href="javascript:void(0);" onclick="cancelAndGoBack(<?= $booking['id'] ?>, <?= $booking['schedule_id'] ?>)"
+            class="back-home">← Quay lại
+        </a>
     </div>
 
     <div class="main-container">
@@ -120,33 +112,19 @@ try {
                     </div>
 
                     <div class="payment-methods">
-                        <h2>Chọn hình thức thanh toán</h2>
+                        <h2>Hình thức thanh toán</h2>
 
                         <div class="payment-option">
-                            <input type="radio" id="pay-counter" name="payment_method" value="counter" checked>
-                            <label for="pay-counter">
-                                <b>Thanh toán tại quầy</b>
+                            <input type="radio" id="pay-counter" name="payment_method" value="counter" checked disabled>
+                            <label for="pay-counter" style="cursor: default;">
+                                <b>Thanh toán bằng Tiền mặt</b>
                                 <span>(Giữ vé, thanh toán tại văn phòng FUTA)</span>
-                            </label>
-                        </div>
-                        <div class="payment-option disabled">
-                            <input type="radio" id="pay-momo" name="payment_method" value="momo" disabled>
-                            <label for="pay-momo">
-                                <b>Ví Momo</b>
-                                <span>(Tính năng đang phát triển)</span>
-                            </label>
-                        </div>
-                        <div class="payment-option disabled">
-                            <input type="radio" id="pay-card" name="payment_method" value="card" disabled>
-                            <label for="pay-card">
-                                <b>Thẻ ATM/Visa</b>
-                                <span>(Tính năng đang phát triển)</span>
                             </label>
                         </div>
 
                         <br>
-                        <button class="btn-submit" id="btn-confirm-payment">Xác nhận Thanh toán</button>
-                        <div id="form-message" class="form-message"></div>
+                        <button class="btn-submit" id="btn-confirm-payment">Xác nhận</button>
+                        <div id="form-message" class="form-message" style="display: none;"></div>
                     </div>
                 </div>
             </div>
@@ -154,6 +132,7 @@ try {
     </div>
 
     <script>
+        // Hàm Xác nhận (Tiền mặt)
         document.getElementById('btn-confirm-payment').addEventListener('click', async function() {
             const btn = this;
             const formMessage = document.getElementById('form-message');
@@ -162,11 +141,13 @@ try {
             btn.textContent = 'Đang xử lý...';
             btn.disabled = true;
             formMessage.textContent = '';
+            formMessage.style.display = 'none';
 
             try {
                 const formData = new FormData();
                 formData.append('action', 'confirm_payment');
                 formData.append('booking_code', bookingCode);
+                formData.append('payment_method', 'counter');
 
                 const response = await fetch('booking.php', {
                     method: 'POST',
@@ -178,18 +159,53 @@ try {
                 if (data.success) {
                     window.location.href = `dat-ve-thanh-cong.php?booking_code=${bookingCode}`;
                 } else {
-                    formMessage.textContent = `❌ ${data.message}`;
+                    formMessage.textContent = `❌ ${data.message || 'Có lỗi xảy ra'}`;
                     formMessage.className = 'form-message error';
-                    btn.textContent = 'Xác nhận Thanh toán';
+                    formMessage.style.display = 'block';
+                    btn.textContent = 'Xác nhận';
                     btn.disabled = false;
                 }
             } catch (error) {
                 formMessage.textContent = '❌ Lỗi kết nối. Vui lòng thử lại.';
                 formMessage.className = 'form-message error';
-                btn.textContent = 'Xác nhận Thanh toán';
+                formMessage.style.display = 'block';
+                btn.textContent = 'Xác nhận';
                 btn.disabled = false;
             }
         });
+
+        // =======================================================
+        // THÊM MỚI: Hàm Hủy vé và Quay lại
+        // =======================================================
+        async function cancelAndGoBack(bookingId, scheduleId) {
+            if (!confirm('Bạn có chắc muốn quay lại?\nVé đang giữ của bạn sẽ bị hủy.')) {
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('action', 'cancel_booking');
+            formData.append('booking_id', bookingId);
+
+            try {
+                // Gọi API 'booking.php' để hủy vé
+                const response = await fetch('booking.php', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    // Hủy thành công, quay lại trang chọn ghế
+                    window.location.href = `chon-ghe.php?schedule_id=${scheduleId}`;
+                } else {
+                    alert('Lỗi khi hủy vé: ' + (data.message || 'Lỗi không xác định'));
+                    // Dù lỗi vẫn quay về
+                    window.location.href = `chon-ghe.php?schedule_id=${scheduleId}`;
+                }
+            } catch (error) {
+                alert('Lỗi kết nối. Vui lòng thử lại.');
+            }
+        }
     </script>
 </body>
 

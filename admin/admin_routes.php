@@ -202,7 +202,7 @@ if ($stats['total_routes'] > 0) {
                     </a>
                 </li>
                 <li>
-                    <a href="./booking.php">
+                    <a href="./admin_bookings.php">
                         <span class="menu-icon">🎫</span>
                         <span>Quản lý đặt vé</span>
                     </a>
@@ -229,7 +229,7 @@ if ($stats['total_routes'] > 0) {
             </div>
 
             <?php if ($message): ?>
-                <div class="alert alert-<?= $message_type ?>"><?= htmlspecialchars($message) ?></div>
+            <div class="alert alert-<?= $message_type ?>"><?= htmlspecialchars($message) ?></div>
             <?php endif; ?>
 
             <div class="stats-grid">
@@ -261,41 +261,41 @@ if ($stats['total_routes'] > 0) {
                 </form>
 
                 <?php if (empty($routes)): ?>
-                    <div class="empty-state">
-                        <div class="empty-icon">🛣️</div>
-                        <h3>Chưa có tuyến nào</h3>
-                    </div>
+                <div class="empty-state">
+                    <div class="empty-icon">🛣️</div>
+                    <h3>Chưa có tuyến nào</h3>
+                </div>
                 <?php else: ?>
-                    <div class="routes-grid">
-                        <?php foreach ($routes as $route): ?>
-                            <div class="route-card">
-                                <div class="route-header">
-                                    <div class="city-name"><?= htmlspecialchars($route['from_city']) ?></div>
-                                    <div class="route-arrow">→</div>
-                                    <div class="city-name"><?= htmlspecialchars($route['to_city']) ?></div>
-                                </div>
-                                <div class="info-row">
-                                    <span class="info-label">📏 Khoảng cách:</span>
-                                    <span class="info-value"><?= number_format($route['distance']) ?> km</span>
-                                </div>
-                                <div class="info-row">
-                                    <span class="info-label">🕐 Lịch trình:</span>
-                                    <span class="info-value"><?= $route['schedule_count'] ?> chuyến</span>
-                                </div>
-                                <div class="info-row">
-                                    <span class="info-label">🎫 Đã đặt:</span>
-                                    <span class="info-value"><?= number_format($route['booking_count']) ?> vé</span>
-                                </div>
-                                <div class="route-actions">
-                                    <button class="btn btn-edit" onclick='openEditModal(<?= json_encode($route) ?>)'>✏️
-                                        Sửa</button>
-                                    <button class="btn btn-delete"
-                                        onclick="deleteRoute(<?= $route['id'] ?>, '<?= addslashes($route['from_city']) ?>', '<?= addslashes($route['to_city']) ?>', <?= $route['schedule_count'] ?>)">🗑️
-                                        Xóa</button>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
+                <div class="routes-grid">
+                    <?php foreach ($routes as $route): ?>
+                    <div class="route-card">
+                        <div class="route-header">
+                            <div class="city-name"><?= htmlspecialchars($route['from_city']) ?></div>
+                            <div class="route-arrow">→</div>
+                            <div class="city-name"><?= htmlspecialchars($route['to_city']) ?></div>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">📏 Khoảng cách:</span>
+                            <span class="info-value"><?= number_format($route['distance']) ?> km</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">🕐 Lịch trình:</span>
+                            <span class="info-value"><?= $route['schedule_count'] ?> chuyến</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">🎫 Đã đặt:</span>
+                            <span class="info-value"><?= number_format($route['booking_count']) ?> vé</span>
+                        </div>
+                        <div class="route-actions">
+                            <button class="btn btn-edit" onclick='openEditModal(<?= json_encode($route) ?>)'>✏️
+                                Sửa</button>
+                            <button class="btn btn-delete"
+                                onclick="deleteRoute(<?= $route['id'] ?>, '<?= addslashes($route['from_city']) ?>', '<?= addslashes($route['to_city']) ?>', <?= $route['schedule_count'] ?>)">🗑️
+                                Xóa</button>
+                        </div>
                     </div>
+                    <?php endforeach; ?>
+                </div>
                 <?php endif; ?>
             </div>
         </div>
@@ -359,87 +359,89 @@ if ($stats['total_routes'] > 0) {
     </div>
 
     <script>
-        function openAddModal() {
-            document.getElementById('addModal').classList.add('show');
+    function openAddModal() {
+        document.getElementById('addModal').classList.add('show');
+    }
+
+    function closeAddModal() {
+        document.getElementById('addModal').classList.remove('show');
+    }
+
+    function openEditModal(route) {
+        document.getElementById('edit_id').value = route.id;
+        document.getElementById('edit_from').value = route.from_city;
+        document.getElementById('edit_to').value = route.to_city;
+        document.getElementById('edit_distance').value = route.distance;
+        document.getElementById('editModal').classList.add('show');
+    }
+
+    function closeEditModal() {
+        document.getElementById('editModal').classList.remove('show');
+    }
+
+    function deleteRoute(id, from, to, schedules) {
+        if (schedules > 0) {
+            alert('❌ Không thể xóa!\nCó ' + schedules + ' lịch trình đang dùng tuyến này.');
+            return;
         }
+        if (!confirm('Xóa tuyến: ' + from + ' → ' + to + '?')) return;
 
-        function closeAddModal() {
-            document.getElementById('addModal').classList.remove('show');
-        }
-
-        function openEditModal(route) {
-            document.getElementById('edit_id').value = route.id;
-            document.getElementById('edit_from').value = route.from_city;
-            document.getElementById('edit_to').value = route.to_city;
-            document.getElementById('edit_distance').value = route.distance;
-            document.getElementById('editModal').classList.add('show');
-        }
-
-        function closeEditModal() {
-            document.getElementById('editModal').classList.remove('show');
-        }
-
-        function deleteRoute(id, from, to, schedules) {
-            if (schedules > 0) {
-                alert('❌ Không thể xóa!\nCó ' + schedules + ' lịch trình đang dùng tuyến này.');
-                return;
-            }
-            if (!confirm('Xóa tuyến: ' + from + ' → ' + to + '?')) return;
-
-            // Sửa: Thêm form vào body và submit
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = 'admin_routes.php'; // Đảm bảo submit về đúng trang
-            form.innerHTML = `
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = 'admin_routes.php';
+        form.innerHTML = `
                 <input type="hidden" name="action" value="delete_route">
                 <input type="hidden" name="route_id" value="${id}">
             `;
-            document.body.appendChild(form);
-            form.submit();
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    // Close modal on outside click
+    window.onclick = function(event) {
+        if (event.target.classList.contains('modal')) {
+            event.target.classList.remove('show');
         }
+    }
 
-        // Close modal on outside click
-        window.onclick = function(event) {
-            if (event.target.classList.contains('modal')) {
-                event.target.classList.remove('show');
-            }
+    // Auto hide alert
+    setTimeout(() => {
+        const alert = document.querySelector('.alert');
+        if (alert) {
+            alert.style.transition = 'opacity 0.5s ease';
+            alert.style.opacity = '0';
+            setTimeout(() => alert.remove(), 500);
         }
+    }, 5000);
 
-        // Auto hide alert
-        setTimeout(() => {
-            const alert = document.querySelector('.alert');
-            if (alert) {
-                alert.style.transition = 'opacity 0.5s ease';
-                alert.style.opacity = '0';
-                setTimeout(() => alert.remove(), 500);
+    // JS cho nút Đăng xuất (Từ file trước)
+    async function handleLogout() {
+        if (!confirm('Bạn có chắc muốn đăng xuất?')) return;
+
+        const formData = new FormData();
+        formData.append('action', 'logout');
+
+        try {
+            // ========================================================
+            // SỬA LỖI: Thêm ../ để đi ra thư mục gốc
+            // ========================================================
+            const response = await fetch('../auth.php', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                alert('Đăng xuất thành công!');
+                // Sửa: Thêm ../ để trỏ về file login.php ở gốc
+                window.location.href = '../login.php';
+            } else {
+                alert('Có lỗi xảy ra khi đăng xuất.');
             }
-        }, 5000);
-
-        // JS cho nút Đăng xuất (Từ file trước)
-        async function handleLogout() {
-            if (!confirm('Bạn có chắc muốn đăng xuất?')) return;
-
-            const formData = new FormData();
-            formData.append('action', 'logout');
-
-            try {
-                // Đảm bảo gọi đúng file auth.php
-                const response = await fetch('auth.php', {
-                    method: 'POST',
-                    body: formData
-                });
-                const data = await response.json();
-
-                if (data.success) {
-                    alert('Đăng xuất thành công!');
-                    window.location.href = 'login.php';
-                } else {
-                    alert('Có lỗi xảy ra khi đăng xuất.');
-                }
-            } catch (error) {
-                alert('Lỗi kết nối. Vui lòng thử lại.');
-            }
+        } catch (error) {
+            alert('Lỗi kết nối. Vui lòng thử lại.');
         }
+    }
     </script>
 </body>
 

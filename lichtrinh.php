@@ -1,5 +1,13 @@
 <?php
 require_once 'config.php';
+
+// BỔ SUNG LẠI PHẦN NÀY: Lấy full_name an toàn
+$full_name = '';
+if (is_logged_in()) {
+    // Giả sử hàm get_user_info() trả về một mảng chứa thông tin user
+    $user = get_user_info();
+    $full_name = $user['full_name'] ?? ''; // Lấy full_name từ mảng
+}
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -23,12 +31,12 @@ require_once 'config.php';
             </div>
             <div class="right">
                 <?php if (is_logged_in()): ?>
-                    <div class="user-info">
-                        👤 <?php echo htmlspecialchars($_SESSION['full_name']); ?>
-                        <button class="logout-btn" onclick="logout()">Đăng xuất</button>
-                    </div>
+                <div class="user-info">
+                    👤 <?php echo htmlspecialchars($full_name); ?>
+                    <button class="logout-btn" onclick="logout()">Đăng xuất</button>
+                </div>
                 <?php else: ?>
-                    <a href="login.php" class="login-btn">Đăng nhập / Đăng ký</a>
+                <a href="login.php" class="login-btn">Đăng nhập / Đăng ký</a>
                 <?php endif; ?>
             </div>
         </div>
@@ -38,7 +46,7 @@ require_once 'config.php';
             <ul class="nav-links">
                 <li><a href="index.php">TRANG CHỦ</a></li>
                 <li><a href="lichtrinh.php" class="active">LỊCH TRÌNH</a></li>
-                <li><a href="#">TRA CỨU VÉ</a></li>
+                <li><a href="cancel_ticket.php">TRA CỨU VÉ</a></li>
                 <li><a href="#">TIN TỨC</a></li>
                 <li><a href="#">LIÊN HỆ</a></li>
             </ul>
@@ -121,53 +129,56 @@ require_once 'config.php';
     </footer>
 
     <script>
-        let allSchedules = [];
-        let filteredSchedules = [];
-        let currentFilter = 'all';
+    let allSchedules = [];
+    let filteredSchedules = [];
+    let currentFilter = 'all';
 
-        window.addEventListener('DOMContentLoaded', loadSchedules);
+    window.addEventListener('DOMContentLoaded', loadSchedules);
 
-        async function loadSchedules() {
-            try {
-                const formData = new FormData();
-                formData.append('action', 'get_all_schedules');
+    async function loadSchedules() {
+        try {
+            const formData = new FormData();
+            formData.append('action', 'get_all_schedules');
 
-                const response = await fetch('booking.php', {
-                    method: 'POST',
-                    body: formData
-                });
+            const response = await fetch('booking.php', {
+                method: 'POST',
+                body: formData
+            });
 
-                const data = await response.json();
+            const data = await response.json();
 
-                if (data.success) {
-                    allSchedules = data.data;
-                    filteredSchedules = [...allSchedules];
-                    renderSchedules();
-                } else {
-                    showError(data.message);
-                }
-            } catch (error) {
-                showError('Có lỗi xảy ra khi tải dữ liệu');
-            } finally {
-                document.getElementById('loading').style.display = 'none';
+            if (data.success) {
+                allSchedules = data.data;
+                filteredSchedules = [...allSchedules];
+                renderSchedules();
+            } else {
+                showError(data.message);
             }
+        } catch (error) {
+            showError('Có lỗi xảy ra khi tải dữ liệu');
+        } finally {
+            document.getElementById('loading').style.display = 'none';
+        }
+    }
+
+    function renderSchedules() {
+        const scheduleList = document.getElementById('schedule-list');
+        const noResults = document.getElementById('no-results');
+        const resultsCount = document.getElementById('results-count');
+
+        resultsCount.textContent = filteredSchedules.length;
+
+        if (filteredSchedules.length === 0) {
+            scheduleList.innerHTML = '';
+            noResults.style.display = 'block';
+            return;
         }
 
-        function renderSchedules() {
-            const scheduleList = document.getElementById('schedule-list');
-            const noResults = document.getElementById('no-results');
-            const resultsCount = document.getElementById('results-count');
+        noResults.style.display = 'none';
 
-            resultsCount.textContent = filteredSchedules.length;
-
-            if (filteredSchedules.length === 0) {
-                scheduleList.innerHTML = '';
-                noResults.style.display = 'block';
-                return;
-            }
-
-            noResults.style.display = 'none';
-            scheduleList.innerHTML = filteredSchedules.map(trip => `
+        // BỔ SUNG LẠI: Thêm ( ${trip.departure_date} ) vào sau ${trip.time}
+        // Dữ liệu này được cung cấp bởi booking.php
+        scheduleList.innerHTML = filteredSchedules.map(trip => `
         <div class="schedule-card">
           <div class="card-header">
             <div class="route-info">
@@ -180,7 +191,7 @@ require_once 'config.php';
           <div class="card-body">
             <div class="info-item">
               <div class="info-label">Giờ khởi hành</div>
-              <div class="info-value">⏰ ${trip.time}</div>
+              <div class="info-value">⏰ ${trip.time} (${trip.departure_date})</div>
             </div>
             <div class="info-item">
               <div class="info-label">Giờ đến dự kiến</div>
@@ -204,95 +215,99 @@ require_once 'config.php';
             </button>
           </div>
         </div>
-      `).join('');
-        }
+        `).join('');
+    }
 
-        document.getElementById('find-route').addEventListener('click', searchSchedules);
-        document.getElementById('search-route').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') searchSchedules();
-        });
+    document.getElementById('find-route').addEventListener('click', searchSchedules);
+    document.getElementById('search-route').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') searchSchedules();
+    });
 
-        async function searchSchedules() {
-            const keyword = document.getElementById('search-route').value.trim();
+    async function searchSchedules() {
+        const keyword = document.getElementById('search-route').value.trim();
 
-            const formData = new FormData();
-            formData.append('action', 'get_all_schedules');
-            formData.append('keyword', keyword);
-            formData.append('bus_type', currentFilter);
-            formData.append('sort_by', document.getElementById('sort-select').value);
+        const formData = new FormData();
+        formData.append('action', 'get_all_schedules');
+        formData.append('keyword', keyword);
+        formData.append('bus_type', currentFilter);
+        formData.append('sort_by', document.getElementById('sort-select').value);
 
-            document.getElementById('loading').style.display = 'block';
+        document.getElementById('loading').style.display = 'block';
 
-            try {
-                const response = await fetch('booking.php', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    filteredSchedules = data.data;
-                    renderSchedules();
-                }
-            } catch (error) {
-                showError('Có lỗi xảy ra');
-            } finally {
-                document.getElementById('loading').style.display = 'none';
-            }
-        }
-
-        document.querySelectorAll('.filter-tag').forEach(tag => {
-            tag.addEventListener('click', function() {
-                document.querySelectorAll('.filter-tag').forEach(t => t.classList.remove('active'));
-                this.classList.add('active');
-                currentFilter = this.dataset.filter;
-                searchSchedules();
+        try {
+            const response = await fetch('booking.php', {
+                method: 'POST',
+                body: formData
             });
-        });
 
-        document.getElementById('sort-select').addEventListener('change', searchSchedules);
+            const data = await response.json();
 
-        // ===============================================
-        // HÀM BOOKTICKET ĐÃ SỬA
-        // ===============================================
-        function bookTicket(scheduleId) {
-            <?php if (!is_logged_in()): ?>
-                // Nếu chưa đăng nhập, yêu cầu đăng nhập
-                alert('⚠️ Vui lòng đăng nhập để đặt vé!');
-
-                // TẠO URL ĐỂ QUAY LẠI ĐÚNG TRANG CHỌN GHẾ
-                const redirectUrl = encodeURIComponent(`chon-ghe.php?schedule_id=${scheduleId}`);
-                window.location.href = `login.php?redirect_to=${redirectUrl}`;
-            <?php else: ?>
-                // Nếu đã đăng nhập, chuyển đến trang chọn ghế
-                window.location.href = `chon-ghe.php?schedule_id=${scheduleId}`;
-            <?php endif; ?>
+            if (data.success) {
+                filteredSchedules = data.data;
+                renderSchedules();
+            }
+        } catch (error) {
+            showError('Có lỗi xảy ra');
+        } finally {
+            document.getElementById('loading').style.display = 'none';
         }
-        // ===============================================
-        // KẾT THÚC SỬA
-        // ===============================================
+    }
 
-        async function logout() {
-            if (!confirm('Bạn có chắc muốn đăng xuất?')) return;
+    document.querySelectorAll('.filter-tag').forEach(tag => {
+        tag.addEventListener('click', function() {
+            document.querySelectorAll('.filter-tag').forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            currentFilter = this.dataset.filter;
+            searchSchedules();
+        });
+    });
 
-            const formData = new FormData();
-            formData.append('action', 'logout');
+    document.getElementById('sort-select').addEventListener('change', searchSchedules);
 
-            const response = await fetch('auth.php', {
+    function bookTicket(scheduleId) {
+        <?php if (!is_logged_in()): ?>
+        // Nếu chưa đăng nhập, yêu cầu đăng nhập
+        alert('⚠️ Vui lòng đăng nhập để đặt vé!');
+
+        // TẠO URL ĐỂ QUAY LẠI ĐÚNG TRANG CHỌN GHẾ
+        const redirectUrl = encodeURIComponent(`chon-ghe.php?schedule_id=${scheduleId}`);
+        window.location.href = `login.php?redirect_to=${redirectUrl}`;
+        <?php else: ?>
+        // Nếu đã đăng nhập, chuyển đến trang chọn ghế
+        window.location.href = `chon-ghe.php?schedule_id=${scheduleId}`;
+        <?php endif; ?>
+    }
+
+    // ===============================================
+    // HÀM LOGOUT (ĐÃ SỬA CHUYỂN VỀ login.php)
+    // ===============================================
+    async function logout() {
+        if (!confirm('Bạn có chắc muốn đăng xuất?')) return;
+
+        const formData = new FormData();
+        formData.append('action', 'logout');
+
+        try {
+            const response = await fetch('auth.php', { // Giả sử file xử lý logout là auth.php
                 method: 'POST',
                 body: formData
             });
 
             const data = await response.json();
             if (data.success) {
-                window.location.reload();
+                // SỬA Ở ĐÂY: Chuyển về trang login.php thay vì reload
+                window.location.href = 'login.php';
+            } else {
+                showError(data.message || 'Lỗi khi đăng xuất');
             }
+        } catch (error) {
+            showError('Lỗi kết nối khi đăng xuất.');
         }
+    }
 
-        function showError(message) {
-            alert('❌ ' + message);
-        }
+    function showError(message) {
+        alert('❌ ' + message);
+    }
     </script>
 </body>
 

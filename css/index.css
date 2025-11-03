@@ -476,3 +476,113 @@ body {
     margin: 0 auto;
   }
 }
+/*
+=================================
+ CSS CHO KẾT QUẢ TÌM KIẾM
+=================================
+*/
+
+/* Vùng chứa kết quả */
+.results-section {
+  /* === Dòng này để canh giữa === */
+  margin: 40px auto;
+
+  max-width: 1200px;
+  background: white;
+  border-radius: 20px;
+  padding: 40px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+/* Tiêu đề "Kết quả tìm kiếm" */
+.results-section h2 {
+  text-align: center;
+  font-size: 32px;
+  margin-bottom: 25px;
+  color: #333;
+}
+
+/* Dòng tóm tắt tuyến đường "Tuyến từ... đến..." */
+.search-summary {
+  text-align: center;
+  font-size: 18px;
+  margin-bottom: 30px;
+  color: #555;
+  line-height: 1.6;
+}
+
+.search-summary strong {
+  color: #333;
+}
+
+/* Bảng kết quả */
+.results-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+
+/* Các ô trong bảng (cả <th> và <td>) */
+.results-table th,
+.results-table td {
+  padding: 16px 12px;
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid #eee; /* Đường kẻ ngang mờ */
+}
+
+/* Tiêu đề bảng (Giờ đi, Giờ đến...) */
+.results-table th {
+  background-color: #f9f9f9;
+  font-weight: 600;
+  color: #333;
+}
+
+/* Tô sáng nhẹ khi di chuột qua hàng */
+.results-table tbody tr:hover {
+  background-color: #fafafa;
+}
+
+/* Căn giữa cho cột cuối cùng (nút) */
+.results-table th:last-child,
+.results-table td:last-child {
+  text-align: center;
+}
+
+/* Định dạng ô giá vé */
+.results-table .price {
+  font-weight: 700;
+  color: #ff6b35; /* Dùng màu cam chủ đạo của bạn */
+  font-size: 1.1em;
+}
+
+/* Nút "Chọn vé" (màu xanh lá để tạo hành động) */
+.select-btn {
+  display: inline-block;
+  background: #28a745;
+  color: white;
+  text-decoration: none;
+  padding: 10px 18px;
+  border-radius: 25px; /* Giống .app-btn */
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.3s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: none;
+  cursor: pointer;
+}
+
+.select-btn:hover {
+  background: #218838;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Thông báo khi không có kết quả */
+.no-results {
+  text-align: center;
+  padding: 40px 20px;
+  font-size: 18px;
+  color: #777;
+  font-weight: 500;
+}

@@ -68,7 +68,7 @@ if (!function_exists('format_currency')) {
         </div>
         <div class="user-info">
             <span class="user-name">👤 <?= htmlspecialchars($user['full_name']) ?></span>
-            <a href="index.php" class="btn-logout">Về trang chủ</a>
+            <a href="#" onclick="event.preventDefault(); handleLogout();" class="btn-logout">Đăng xuất</a>
         </div>
     </div>
 
@@ -197,7 +197,32 @@ if (!function_exists('format_currency')) {
 
         </div>
     </div>
+    <script>
+        async function handleLogout() {
+            if (!confirm('Bạn có chắc muốn đăng xuất?')) return;
 
+            const formData = new FormData();
+            formData.append('action', 'logout');
+
+            try {
+                // Đảm bảo đường dẫn này chính xác
+                const response = await fetch('../auth.php', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('Đăng xuất thành công!');
+                    window.location.href = '../login.php';
+                } else {
+                    alert('Có lỗi xảy ra khi đăng xuất.');
+                }
+            } catch (error) {
+                alert('Lỗi kết nối. Vui lòng thử lại.');
+            }
+        }
+    </script>
 </body>
 
 </html>
